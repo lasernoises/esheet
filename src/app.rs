@@ -1,7 +1,7 @@
-use egui::{ScrollArea, Ui, Window};
+use egui::{DragValue, ScrollArea, TextEdit, Ui, Window};
 use serde::{Deserialize, Serialize};
 
-use crate::state::{self, Level};
+use crate::state::{self, Item, Level};
 
 // TODO: Figure out correct value
 const ABILITY_BOOST_COUNT: u8 = 3;
@@ -60,7 +60,39 @@ impl eframe::App for TemplateApp {
 
             basic_stats(ui, state);
 
-            skill_list(ui, &mut state.computed.skills);
+            #[derive(Clone, PartialEq)]
+            enum Tab {
+                Skills,
+                Inventory,
+            }
+
+            use Tab::*;
+
+            let id = ui.id().with("tab");
+            let mut active_tab = ui.data_mut(|w| w.get_temp(id).unwrap_or(Skills));
+
+            ui.horizontal(|ui| {
+                if ui
+                    .selectable_label(active_tab == Skills, "Skills")
+                    .clicked()
+                {
+                    active_tab = Skills;
+                }
+
+                if ui
+                    .selectable_label(active_tab == Inventory, "Inventory")
+                    .clicked()
+                {
+                    active_tab = Inventory;
+                }
+            });
+
+            match active_tab {
+                Skills => skill_list(ui, &mut state.computed.skills),
+                Inventory => inventory(ui, state),
+            }
+
+            ui.data_mut(|w| w.insert_temp(id, active_tab));
         });
     }
 }
@@ -251,6 +283,89 @@ skills![
         ability: charisma,
     ),
 ];
+
+fn inventory(ui: &mut Ui, sheet: &mut state::CharSheet) {
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ui.label("Platinum");
+            ui.add(DragValue::new(&mut sheet.inventory.platinum));
+        });
+
+        ui.vertical(|ui| {
+            ui.label("Gold");
+            ui.add(DragValue::new(&mut sheet.inventory.gold));
+        });
+
+        ui.vertical(|ui| {
+            ui.label("Silver");
+            ui.add(DragValue::new(&mut sheet.inventory.silver));
+        });
+
+        ui.vertical(|ui| {
+            ui.label("Copper");
+            ui.add(DragValue::new(&mut sheet.inventory.copper));
+        });
+    });
+
+    window_button("Add Item", ui, |ui| {
+        // let id = ui.id().with("search");
+        // let mut search = ui.data_mut(|d| d.get_temp(id).unwrap_or(String::new()));
+
+        ui.add(TextEdit::singleline(&mut sheet.add_item.item_search).hint_text("Search"));
+
+        ui.separator();
+
+        ui.label("Custom Item");
+
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.label("Name");
+                ui.add(
+                    TextEdit::singleline(&mut sheet.add_item.custom_item_name).desired_width(128.),
+                );
+            });
+
+            ui.vertical(|ui| {
+                ui.label("Bulk");
+                ui.add(DragValue::new(&mut sheet.add_item.custom_item_bulk));
+            });
+        });
+
+        if ui.button("Add").clicked() {
+            sheet.inventory.items.push((
+                Item {
+                    id: 0,
+                    name: sheet.add_item.custom_item_name.clone(),
+                    bulk: sheet.add_item.custom_item_bulk,
+                },
+                1,
+            ))
+        }
+
+        // ui.data_mut(|d| d.insert_temp(id, search));
+    });
+
+    ScrollArea::vertical().show(ui, |ui| {
+        egui::Grid::new("inventory")
+            .num_columns(3)
+            .spacing([40.0, 4.0])
+            .striped(true)
+            .show(ui, |ui| {
+                ui.label("Item");
+                ui.label("Bulk");
+                ui.label("Count");
+                ui.end_row();
+
+                for (ref item, ref mut count) in &mut sheet.inventory.items {
+                    ui.label(&item.name);
+                    ui.label(item.bulk.to_string());
+                    // ui.label(count.to_string());
+                    ui.add(DragValue::new(count));
+                    ui.end_row();
+                }
+            });
+    });
+}
 
 fn plan(ui: &mut Ui, sheet: &mut state::CharSheet) {
     ScrollArea::vertical().show(ui, |ui| {

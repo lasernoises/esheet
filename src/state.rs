@@ -17,8 +17,13 @@ pub struct CharSheet {
 
     pub plan: [LevelPlan; 20],
 
+    pub inventory: Inventory,
+
     #[serde(skip)]
     pub computed: Computed,
+
+    #[serde(skip)]
+    pub add_item: AddItem,
 }
 
 impl Default for CharSheet {
@@ -34,9 +39,20 @@ impl Default for CharSheet {
 
             plan: Default::default(),
 
+            inventory: Default::default(),
+
             computed: Default::default(),
+
+            add_item: Default::default(),
         }
     }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct AddItem {
+    pub item_search: String,
+    pub custom_item_name: String,
+    pub custom_item_bulk: u32,
 }
 
 impl CharSheet {
@@ -163,18 +179,21 @@ impl Training {
     }
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Inventory {
-    platinum: u32,
-    gold: u32,
-    silver: u32,
-    copper: u32,
+    pub platinum: u32,
+    pub gold: u32,
+    pub silver: u32,
+    pub copper: u32,
 
-    items: Vec<(Item, u32)>,
+    pub items: Vec<(Item, u32)>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Item {
-    id: u64,
-    name: String,
+    pub id: u64,
+    pub name: String,
+    pub bulk: u32,
 }
 
 /// This contains all of the things a levelup can contain

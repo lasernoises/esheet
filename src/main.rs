@@ -5,13 +5,20 @@
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
+
+    use egui::Visuals;
     tracing_subscriber::fmt::init();
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
         "GSRPG Charsheet",
         native_options,
-        Box::new(|cc| Box::new(esheet::TemplateApp::new(cc))),
+        Box::new(|cc| {
+            let mut visuals = Visuals::light();
+            visuals.window_shadow.extrusion = 0.;
+            cc.egui_ctx.set_visuals(visuals);
+            Box::new(esheet::TemplateApp::new(cc))
+        }),
     )
 }
 
